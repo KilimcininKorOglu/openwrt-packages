@@ -1,0 +1,18 @@
+# Paket indeks dosyaları (isteğe bağlı - bunları commit edebilir veya ignore edebilirsiniz)
+# packages/*/Packages
+# packages/*/Packages.gz
+
+# Geçici dosyalar
+*.tmp
+*.bak
+*~
+
+# IDE dosyaları
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS dosyaları
+.DS_Store
+Thumbs.db
