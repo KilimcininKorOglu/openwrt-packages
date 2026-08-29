@@ -2,7 +2,7 @@
 
 Custom IPK package repository for OpenWRT devices, hosted on GitHub.
 
-## 📦 Installation on OpenWRT Device
+## Installation on OpenWRT Device
 
 ### 1. Add Repository
 
@@ -30,7 +30,7 @@ opkg update
 opkg install PACKAGE_NAME
 ```
 
-## 🏗️ Supported Architectures
+## Supported Architectures
 
 - `aarch64_generic` - ARM 64-bit
 - `arm_cortex-a7` - ARM Cortex-A7
@@ -44,7 +44,7 @@ opkg install PACKAGE_NAME
 opkg print-architecture
 ```
 
-## 🔧 Maintainer Guide
+## Maintainer Guide
 
 ### Initial Setup
 
@@ -130,7 +130,7 @@ git commit -m "Add: my-package (all architectures)"
 git push
 ```
 
-## 📁 Repository Structure
+## Repository Structure
 
 ```
 .
@@ -147,20 +147,20 @@ git push
 └── ipkg-make-index.sh        # Index generator (auto-called)
 ```
 
-## 🛠️ How It Works
+## How It Works
 
 1. `generate-index.sh` - Main script you run
 2. `ipkg-make-index.sh` - Extracts metadata from IPK files
 3. Creates `Packages` file with package info (name, version, dependencies, etc.)
 4. Compresses to `Packages.gz` for opkg
 
-## 📝 Notes
+## Notes
 
 - Each architecture folder is independent
 - Package indexes are architecture-specific
 - No external dependencies required
 - Works on any Linux system (Ubuntu, Debian, etc.)
 
-## 📄 License
+## License
 
 Individual packages may have their own licenses. Check package documentation.
