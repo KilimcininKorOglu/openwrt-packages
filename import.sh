@@ -1,15 +1,16 @@
 #!/bin/bash
-# Import IPK files into the feed, placing each into the matching arch directory,
-# then regenerate the affected indexes. Intended for use from any OpenWRT project
-# after its build step.
+# Import IPK files into the feed, placing each into the matching arch directory
+# (creating it if missing), then regenerate the affected indexes. Intended for use
+# from CI after a project's build step.
 #
 # Usage: ./import.sh <file.ipk> [file2.ipk ...]
 #        ./import.sh /path/to/build/*/*.ipk
 #
-# Arch detection: an IPK is named <pkg>_<version>_<arch>.ipk. Because arch names
-# contain underscores (mips_24kc, aarch64_generic), the arch is matched against
-# the existing arch directories by the "_<arch>.ipk" suffix, not by splitting on
-# "_". A "*_all.ipk" package is copied into every arch directory.
+# Arch detection: an IPK is named <pkg>_<version>_<arch>.ipk. The package name and
+# version contain no underscore, while arch may (mips_24kc, aarch64_generic), so the
+# arch is everything after the first two underscores, minus ".ipk". If that arch has
+# no directory yet, it is created (with a .gitkeep). A "*_all.ipk" package is copied
+# into every existing arch directory.
 
 set -e
 
@@ -26,21 +27,28 @@ discover_archs() {
 if [ -z "$1" ]; then
     echo "Usage: $0 <file.ipk> [file2.ipk ...]"
     echo ""
-    echo "Places each IPK into its matching arch directory and regenerates indexes."
-    echo "Known architectures:"
+    echo "Places each IPK into its arch directory (creating it if missing) and reindexes."
+    echo "Existing architectures:"
     for a in $(discover_archs); do echo "  - $a"; done
     exit 1
 fi
 
-ARCHS=$(discover_archs)
 touched=""        # space-separated list of arch dirs that received files
-unmatched=0
 
 mark_touched() {
     case " $touched " in
         *" $1 "*) : ;;
         *) touched="$touched $1" ;;
     esac
+}
+
+ensure_arch_dir() {
+    local arch="$1"
+    if [ ! -d "$SCRIPT_DIR/$arch" ]; then
+        mkdir -p "$SCRIPT_DIR/$arch"
+        touch "$SCRIPT_DIR/$arch/.gitkeep"
+        echo "[NEW] Created arch directory: $arch"
+    fi
 }
 
 for pkg in "$@"; do
@@ -50,10 +58,10 @@ for pkg in "$@"; do
     fi
     base=$(basename "$pkg")
 
-    # Architecture-independent package -> all arch directories.
+    # Architecture-independent package -> every existing arch directory.
     case "$base" in
         *_all.ipk)
-            for a in $ARCHS; do
+            for a in $(discover_archs); do
                 cp "$pkg" "$SCRIPT_DIR/$a/"
                 mark_touched "$a"
             done
@@ -62,30 +70,26 @@ for pkg in "$@"; do
             ;;
     esac
 
-    # Match against the longest known arch suffix.
-    matched=""
-    for a in $ARCHS; do
-        case "$base" in
-            *_"$a".ipk)
-                if [ ${#a} -gt ${#matched} ]; then matched="$a"; fi
-                ;;
-        esac
-    done
+    # Parse arch: strip package name and version (first two underscore-separated
+    # fields), then the .ipk suffix. e.g. pkg_1.2.3-9_mips_24kc.ipk -> mips_24kc
+    stem="${base%.ipk}"
+    rest="${stem#*_}"          # drop package name
+    arch="${rest#*_}"          # drop version -> arch (may contain underscores)
 
-    if [ -n "$matched" ]; then
-        cp "$pkg" "$SCRIPT_DIR/$matched/"
-        mark_touched "$matched"
-        echo "[OK] $base -> $matched/"
-    else
-        echo "[WARN] No matching arch directory for: $base"
-        echo "       Create the arch directory first, then re-run."
-        unmatched=1
+    if [ "$arch" = "$rest" ] || [ -z "$arch" ]; then
+        echo "[WARN] Cannot parse arch from: $base (expected <pkg>_<version>_<arch>.ipk)"
+        continue
     fi
+
+    ensure_arch_dir "$arch"
+    cp "$pkg" "$SCRIPT_DIR/$arch/"
+    mark_touched "$arch"
+    echo "[OK] $base -> $arch/"
 done
 
 if [ -z "$touched" ]; then
     echo "Nothing imported."
-    exit $unmatched
+    exit 0
 fi
 
 echo ""
@@ -95,4 +99,3 @@ for a in $touched; do
 done
 
 echo "Done. Next: git add . && git commit -m 'Add: <package>' && git push"
-exit $unmatched

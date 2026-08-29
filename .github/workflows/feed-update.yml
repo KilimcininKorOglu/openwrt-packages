@@ -1,0 +1,60 @@
+name: Update feed from release
+
+# Triggered by a repository_dispatch (event type "publish-ipk") sent from a
+# project's release workflow. Downloads that release's IPKs, imports them into the
+# feed (creating arch directories as needed), and pushes the updated indexes.
+
+on:
+  repository_dispatch:
+    types: [publish-ipk]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: feed-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      # client_payload is untrusted input; values are validated before use.
+      REPO: ${{ github.event.client_payload.repo }}
+      TAG: ${{ github.event.client_payload.tag }}
+    steps:
+      - name: Checkout feed
+        uses: actions/checkout@v4
+
+      - name: Validate payload and download release IPKs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$REPO" | grep -qE '^[A-Za-z0-9._-]+$'; then
+            echo "Invalid repo: $REPO"; exit 1
+          fi
+          if ! printf '%s' "$TAG" | grep -qE '^v?[0-9A-Za-z._-]+$'; then
+            echo "Invalid tag: $TAG"; exit 1
+          fi
+          mkdir -p /tmp/ipks
+          gh release download "$TAG" --repo "KilimcininKorOglu/$REPO" \
+            --pattern '*.ipk' --dir /tmp/ipks
+          echo "Downloaded:"
+          ls -la /tmp/ipks
+
+      - name: Import IPKs into feed
+        run: ./import.sh /tmp/ipks/*.ipk
+
+      - name: Commit and push
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "No feed changes to commit."
+          else
+            git commit -m "feed: ${REPO} ${TAG}"
+            git push
+          fi
