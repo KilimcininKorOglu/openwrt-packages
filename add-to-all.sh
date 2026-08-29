@@ -1,10 +1,19 @@
 #!/bin/bash
-# Add IPK package to all architectures
-# Usage: ./add-to-all.sh <package.ipk>
+# Add an architecture-independent IPK package to all architectures.
+# Usage: ./add-to-all.sh <package_all.ipk>
 
 set -e
 
-ARCHITECTURES=("aarch64_generic" "arm_cortex-a7" "arm_cortex-a9" "mipsel_24kc" "x86_64")
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Discover architecture directories automatically (see generate-index.sh).
+discover_archs() {
+    local d
+    for d in "$SCRIPT_DIR"/*/; do
+        d="${d%/}"
+        echo "${d##*/}"
+    done
+}
 
 if [ -z "$1" ]; then
     echo "Usage: $0 <package.ipk>"
@@ -24,13 +33,9 @@ PACKAGE_NAME=$(basename "$PACKAGE")
 echo "Adding $PACKAGE_NAME to all architectures..."
 echo ""
 
-for arch in "${ARCHITECTURES[@]}"; do
-    if [ -d "$arch" ]; then
-        cp "$PACKAGE" "$arch/"
-        echo "✓ Copied to $arch/"
-    else
-        echo "⚠ Skipped $arch/ (directory not found)"
-    fi
+for arch in $(discover_archs); do
+    cp "$PACKAGE" "$SCRIPT_DIR/$arch/"
+    echo "[OK] Copied to $arch/"
 done
 
 echo ""

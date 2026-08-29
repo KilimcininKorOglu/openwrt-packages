@@ -7,18 +7,28 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ARCHITECTURES=("aarch64_generic" "arm_cortex-a7" "arm_cortex-a9" "mipsel_24kc" "x86_64")
+
+# Discover architecture directories automatically. Any visible top-level
+# directory is treated as an arch feed, so adding a new arch is just `mkdir`.
+# The `*/` glob skips hidden dirs like .git.
+discover_archs() {
+    local d
+    for d in "$SCRIPT_DIR"/*/; do
+        d="${d%/}"
+        echo "${d##*/}"
+    done
+}
 
 generate_for_arch() {
     local arch_dir="$1"
 
     # Check for IPK files
     if ! ls "$arch_dir"/*.ipk >/dev/null 2>&1; then
-        echo "⊘ Skipping $arch_dir (no .ipk files)"
+        echo "- Skipping $arch_dir (no .ipk files)"
         return 0
     fi
 
-    echo "→ Generating index for $arch_dir..."
+    echo "-> Generating index for $arch_dir..."
 
     # Generate Packages file using our local ipkg-make-index.sh
     "$SCRIPT_DIR/ipkg-make-index.sh" "$arch_dir" > "$arch_dir/Packages"
@@ -26,7 +36,7 @@ generate_for_arch() {
     # Create compressed version
     gzip -9fc "$arch_dir/Packages" > "$arch_dir/Packages.gz"
 
-    echo "✓ Generated: Packages, Packages.gz"
+    echo "OK: Generated Packages, Packages.gz"
     ls -lh "$arch_dir/Packages" "$arch_dir/Packages.gz" | awk '{print "  " $9, "-", $5}'
     echo ""
 }
@@ -38,20 +48,18 @@ if [ -n "$1" ]; then
         echo ""
         echo "Usage: $0 [architecture_directory]"
         echo "Available architectures:"
-        for arch in "${ARCHITECTURES[@]}"; do
+        for arch in $(discover_archs); do
             echo "  - $arch"
         done
         exit 1
     fi
     generate_for_arch "$1"
 else
-    # No argument, process all architectures
+    # No argument, process all discovered architectures
     echo "Processing all architectures..."
     echo ""
-    for arch in "${ARCHITECTURES[@]}"; do
-        if [ -d "$arch" ]; then
-            generate_for_arch "$arch"
-        fi
+    for arch in $(discover_archs); do
+        generate_for_arch "$arch"
     done
     echo "Done!"
 fi
