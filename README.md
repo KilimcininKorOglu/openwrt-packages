@@ -88,8 +88,11 @@ raw URL.
 
 ## Using this feed from another project
 
-After a project builds its OpenWRT IPKs, import them into a local checkout of
-this repository. Example, from a sibling project in the same parent folder:
+For the full automated setup (CI + Release + auto-push to this feed), see
+[INTEGRATION.md](INTEGRATION.md).
+
+To import IPKs manually into a local checkout of this repository instead, e.g.
+from a sibling project in the same parent folder:
 
 ```sh
 ../openwrt-packages/import.sh build/<version>/*.ipk
