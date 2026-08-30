@@ -1,0 +1,29 @@
+Package: luci-app-mergen
+Version: 0.3.1-121
+Depends: mergen, luci-base, luci-compat
+Section: luci
+Architecture: all
+Installed-Size: 117623
+Maintainer: KilimcininKorOglu
+Description: LuCI interface for Mergen ASN/IP policy routing
+ Web interface for managing Mergen ASN/IP based policy routing rules,
+ provider configuration and system status monitoring.
+Filename: luci-app-mergen_0.3.1-121_all.ipk
+Size: 29454
+SHA256sum: 427063452a81b4b0c08b88eb32bda99c4356abc274b502d940da6e1c55a94a71
+
+Package: mergen
+Version: 0.3.1-121
+Depends: ip-full, curl, ca-bundle, jsonfilter
+Section: net
+Architecture: all
+Installed-Size: 271503
+Maintainer: KilimcininKorOglu
+Description: ASN/IP based policy routing daemon for OpenWrt
+ Mergen is a policy routing daemon for OpenWrt that automatically resolves
+ ASN prefix lists and creates ip rule/route entries. Supports nftables sets
+ for performant packet matching with ipset fallback for older systems.
+Filename: mergen_0.3.1-121_all.ipk
+Size: 63863
+SHA256sum: cf7e6e702f48d20a403dfe58099d6c0475ba267f273b4c5f8126b8d4dd16abd9
+
